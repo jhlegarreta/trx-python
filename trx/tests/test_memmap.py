@@ -223,32 +223,32 @@ def test_append(path, buffer):
 @pytest.mark.skipif(not dipy_available, reason="Dipy is not installed")
 def test_append_StatefulTractogram(path, buffer):
     path = os.path.join(get_home(), "memmap_test_data", path)
-    trx = tmm.load(path)
-    obj = trx.to_sft()
-    concat = tmm.TrxFile(nb_vertices=1, nb_streamlines=1, init_as=trx)
+    tgm = tmm.load(path)
+    obj = tgm.to_sft()
+    concat = tmm.TrxFile(nb_vertices=1, nb_streamlines=1, init_as=tgm)
 
     concat.append(obj, extra_buffer=buffer)
     if buffer > 0:
         concat.resize()
 
     assert len(concat) == len(obj)
-    trx.close()
+    tgm.close()
     concat.close()
 
 
 @pytest.mark.parametrize("path, buffer", [("small.trx", 10000)])
 def test_append_Tractogram(path, buffer):
     path = os.path.join(get_home(), "memmap_test_data", path)
-    trx = tmm.load(path)
-    obj = trx.to_tractogram()
-    concat = tmm.TrxFile(nb_vertices=1, nb_streamlines=1, init_as=trx)
+    tgm = tmm.load(path)
+    obj = tgm.to_tractogram()
+    concat = tmm.TrxFile(nb_vertices=1, nb_streamlines=1, init_as=tgm)
 
     concat.append(obj, extra_buffer=buffer)
     if buffer > 0:
         concat.resize()
 
     assert len(concat) == len(obj)
-    trx.close()
+    tgm.close()
     concat.close()
 
 
@@ -301,11 +301,11 @@ def test_from_lazy_tractogram(path, size, buffer):
         "dps": {"commit_weights": np.float32, "clusters_QB": np.uint16},
     }
     path = os.path.join(get_home(), "memmap_test_data", path)
-    trx = tmm.TrxFile.from_lazy_tractogram(
+    tgm = tmm.TrxFile.from_lazy_tractogram(
         obj, reference=path, extra_buffer=buffer, chunk_size=1000, dtype_dict=dtype_dict
     )
 
-    assert len(trx) == len(gen_range)
+    assert len(tgm) == len(gen_range)
 
 
 def test_zip_from_folder():
@@ -344,13 +344,13 @@ def test_copy_fixed_arrays_from():
 
 def test_initialize_empty_trx(tmp_path):
     """Test creating, saving, and loading an empty TRX file."""
-    trx = tmm.TrxFile()
-    assert trx.header["NB_STREAMLINES"] == 0
-    assert trx.header["NB_VERTICES"] == 0
-    assert len(trx.streamlines) == 0
+    tgm = tmm.TrxFile()
+    assert tgm.header["NB_STREAMLINES"] == 0
+    assert tgm.header["NB_VERTICES"] == 0
+    assert len(tgm.streamlines) == 0
 
     out_path = os.path.join(tmp_path, "empty.trx")
-    tmm.save(trx, out_path)
+    tmm.save(tgm, out_path)
 
     assert os.path.exists(out_path)
     file_size = os.path.getsize(out_path)
@@ -385,30 +385,30 @@ def test_trxfile_getgroup():
 
 def test_trxfile_select():
     path = os.path.join(get_home(), "memmap_test_data", "small.trx")
-    trx = tmm.load(path)
+    tgm = tmm.load(path)
 
-    assert len(trx.select([]).streamlines) == 0
-    assert len(trx.select([0]).streamlines) == 1
+    assert len(tgm.select([]).streamlines) == 0
+    assert len(tgm.select([0]).streamlines) == 1
 
     idx = list(range(10))
-    sub = trx.select(idx)
+    sub = tgm.select(idx)
     assert len(sub.streamlines) == len(idx)
     assert not sub._copy_safe
 
-    trx.close()
+    tgm.close()
 
 
 def test_save_after_select(tmp_path):
     path = os.path.join(get_home(), "memmap_test_data", "small.trx")
-    trx = tmm.load(path)
-    sub = trx.select(list(range(5)))
+    tgm = tmm.load(path)
+    sub = tgm.select(list(range(5)))
     out = os.path.join(tmp_path, "sub.trx")
     tmm.save(sub, out)
     loaded = tmm.load(out)
     assert len(loaded.streamlines) == 5
     assert len(loaded.streamlines._data) == len(sub.streamlines.copy()._data)
     loaded.close()
-    trx.close()
+    tgm.close()
 
 
 def test_trxfile_to_memory():
@@ -423,15 +423,15 @@ def test_trxfile_close():
 def test_close_releases_mmap_from_zip(path):
     """close() must release mmap handles even when loaded via load_from_zip()."""
     path = os.path.join(get_home(), "memmap_test_data", path)
-    trx = tmm.load_from_zip(path)
+    tgm = tmm.load_from_zip(path)
 
-    assert trx._uncompressed_folder_handle is None
+    assert tgm._uncompressed_folder_handle is None
 
-    mmap_obj = trx.streamlines._data._mmap
+    mmap_obj = tgm.streamlines._data._mmap
     assert mmap_obj is not None, "expected a live mmap before close()"
     assert not mmap_obj.closed, "mmap should be open before close()"
 
-    trx.close()
+    tgm.close()
 
     assert mmap_obj.closed, (
         "mmap is still open after close() — the mmap teardown was skipped "
@@ -623,11 +623,11 @@ def test_load_zip64_with_extra_fields(tmp_path):
             )
         )
 
-    trx = tmm.load_from_zip(trx_path)
-    np.testing.assert_array_almost_equal(trx.streamlines._data, positions)
-    assert trx.header["NB_VERTICES"] == 2
-    assert trx.header["NB_STREAMLINES"] == 1
-    trx.close()
+    tgm = tmm.load_from_zip(trx_path)
+    np.testing.assert_array_almost_equal(tgm.streamlines._data, positions)
+    assert tgm.header["NB_VERTICES"] == 2
+    assert tgm.header["NB_STREAMLINES"] == 1
+    tgm.close()
 
 
 def test_load_zip_with_local_header_extra_field(tmp_path):
@@ -727,12 +727,12 @@ def test_load_zip_with_local_header_extra_field(tmp_path):
             )
         )
 
-    trx = tmm.load_from_zip(trx_path)
-    np.testing.assert_array_almost_equal(trx.streamlines._data, positions)
-    assert trx.header["NB_VERTICES"] == 2
-    assert trx.header["NB_STREAMLINES"] == 1
+    tgm = tmm.load_from_zip(trx_path)
+    np.testing.assert_array_almost_equal(tgm.streamlines._data, positions)
+    assert tgm.header["NB_VERTICES"] == 2
+    assert tgm.header["NB_STREAMLINES"] == 1
 
-    trx.close()
+    tgm.close()
 
 
 def test_endianness_roundtrip():
