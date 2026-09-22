@@ -233,7 +233,7 @@ def concatenate_tractograms(
             has_group = True
         trx_list.append(tractogram_obj)
 
-    trx = concatenate(
+    tgm = concatenate(
         trx_list,
         delete_dpv=delete_dpv,
         delete_dps=delete_dps,
@@ -241,7 +241,7 @@ def concatenate_tractograms(
         check_space_attributes=True,
         preallocation=False,
     )
-    save(trx, str(out_tractogram))
+    save(tgm, str(out_tractogram))
 
     typer.echo(
         typer.style(
@@ -1002,8 +1002,8 @@ def info(
     typer.echo("")
 
     # Show TRX content info
-    trx = load_trx(str(in_tractogram))
-    typer.echo(trx)
+    tgm = load_trx(str(in_tractogram))
+    typer.echo(tgm)
 
     # Show file listing (unzip -l style)
     typer.echo("\nArchive contents:")
@@ -1021,7 +1021,7 @@ def info(
         typer.echo("---------                     -------")
         typer.echo(f"{total_uncompressed:>9}                     {num_files} files")
 
-    trx.close()
+    tgm.close()
 
 
 def main():

@@ -46,7 +46,7 @@ def test_create_temp_memmap_uses_reopenable_path(tmp_path):
 
 
 def test_manipulate_trx_datatype_uses_reopenable_memmaps(tmp_path):
-    trx = SimpleNamespace(
+    tgm = SimpleNamespace(
         streamlines=SimpleNamespace(
             _data=np.arange(6, dtype=np.float16).reshape((2, 3)),
             _offsets=np.array([0, 3], dtype=np.uint64),
@@ -62,14 +62,14 @@ def test_manipulate_trx_datatype_uses_reopenable_memmaps(tmp_path):
         },
         groups={"mock_group": np.array([0, 1], dtype=np.int32)},
     )
-    trx.close = lambda: None
+    tgm.close = lambda: None
 
     with (
         patch(
             "trx.workflows.get_trx_tmp_dir",
             return_value=nullcontext(os.fspath(tmp_path)),
         ),
-        patch("trx.workflows.tmm.load", return_value=trx),
+        patch("trx.workflows.tmm.load", return_value=tgm),
         patch("trx.workflows.tmm.save") as mock_save,
         patch(
             "trx.workflows.tempfile.NamedTemporaryFile",
@@ -91,13 +91,13 @@ def test_manipulate_trx_datatype_uses_reopenable_memmaps(tmp_path):
             },
         )
 
-    assert trx.streamlines._data.dtype == np.dtype("float32")
-    assert trx.streamlines._offsets.dtype == np.dtype("uint32")
-    assert trx.data_per_vertex["mock_dpv"]._data.dtype == np.dtype("uint16")
-    assert trx.data_per_streamline["mock_dps"].dtype == np.dtype("float32")
-    assert trx.data_per_group["mock_group"]["mock_dpg"].dtype == np.dtype("float64")
-    assert trx.groups["mock_group"].dtype == np.dtype("uint16")
-    mock_save.assert_called_once_with(trx, "out.trx")
+    assert tgm.streamlines._data.dtype == np.dtype("float32")
+    assert tgm.streamlines._offsets.dtype == np.dtype("uint32")
+    assert tgm.data_per_vertex["mock_dpv"]._data.dtype == np.dtype("uint16")
+    assert tgm.data_per_streamline["mock_dps"].dtype == np.dtype("float32")
+    assert tgm.data_per_group["mock_group"]["mock_dpg"].dtype == np.dtype("float64")
+    assert tgm.groups["mock_group"].dtype == np.dtype("uint16")
+    mock_save.assert_called_once_with(tgm, "out.trx")
 
 
 def _normalize_dtype_dict(dtype_dict):
@@ -265,12 +265,12 @@ class TestWorkflowFunctions:
         data_fix = np.load(exp_data)
         offsets_fix = np.load(exp_offsets)
 
-        trx = tmm.load(out_trx_path)
-        assert_equal(trx.streamlines._data.dtype, np.float32)
-        assert_equal(trx.streamlines._offsets.dtype, np.uint32)
-        assert_array_equal(trx.streamlines._data, data_fix)
-        assert_array_equal(trx.streamlines._offsets, offsets_fix)
-        trx.close()
+        tgm = tmm.load(out_trx_path)
+        assert_equal(tgm.streamlines._data.dtype, np.float32)
+        assert_equal(tgm.streamlines._offsets.dtype, np.uint32)
+        assert_array_equal(tgm.streamlines._data, data_fix)
+        assert_array_equal(tgm.streamlines._offsets, offsets_fix)
+        tgm.close()
 
     @pytest.mark.skipif(not dipy_available, reason="Dipy is not installed.")
     def test_execution_convert_from_trx(self, tmp_path):
@@ -310,10 +310,10 @@ class TestWorkflowFunctions:
             offsets_dtype="uint64",
         )
 
-        trx = tmm.load(out_convert_path)
-        assert_equal(trx.streamlines._data.dtype, np.float16)
-        assert_equal(trx.streamlines._offsets.dtype, np.uint64)
-        trx.close()
+        tgm = tmm.load(out_convert_path)
+        assert_equal(tgm.streamlines._data.dtype, np.float16)
+        assert_equal(tgm.streamlines._offsets.dtype, np.uint64)
+        tgm.close()
 
     @pytest.mark.skipif(not dipy_available, reason="Dipy is not installed.")
     def test_execution_convert_dtype_p64_o32(self, tmp_path):
@@ -327,10 +327,10 @@ class TestWorkflowFunctions:
             offsets_dtype="uint32",
         )
 
-        trx = tmm.load(out_convert_path)
-        assert_equal(trx.streamlines._data.dtype, np.float64)
-        assert_equal(trx.streamlines._offsets.dtype, np.uint32)
-        trx.close()
+        tgm = tmm.load(out_convert_path)
+        assert_equal(tgm.streamlines._data.dtype, np.float64)
+        assert_equal(tgm.streamlines._offsets.dtype, np.uint32)
+        tgm.close()
 
     def test_execution_generate_trx_from_scratch(self, tmp_path):
         reference_fa = os.path.join(get_home(), "trx_from_scratch", "fa.nii.gz")
@@ -421,42 +421,42 @@ class TestWorkflowFunctions:
     def test_execution_concatenate_validate_trx(self, tmp_path):
         trx1 = tmm.load(os.path.join(get_home(), "gold_standard", "gs.trx"))
         trx2 = tmm.load(os.path.join(get_home(), "gold_standard", "gs.trx"))
-        trx = tmm.concatenate([trx1, trx2], preallocation=False)
+        tgm = tmm.concatenate([trx1, trx2], preallocation=False)
 
         # Right size
-        assert_equal(len(trx.streamlines), 2 * len(trx1.streamlines))
+        assert_equal(len(tgm.streamlines), 2 * len(trx1.streamlines))
 
         # Right data
         end_idx = trx1.header["NB_VERTICES"]
-        assert_allclose(trx.streamlines._data[:end_idx], trx1.streamlines._data)
-        assert_allclose(trx.streamlines._data[end_idx:], trx2.streamlines._data)
+        assert_allclose(tgm.streamlines._data[:end_idx], trx1.streamlines._data)
+        assert_allclose(tgm.streamlines._data[end_idx:], trx2.streamlines._data)
 
         # Right data_per_*
-        for key in trx.data_per_vertex.keys():
+        for key in tgm.data_per_vertex.keys():
             assert_equal(
-                trx.data_per_vertex[key]._data[:end_idx],
+                tgm.data_per_vertex[key]._data[:end_idx],
                 trx1.data_per_vertex[key]._data,
             )
             assert_equal(
-                trx.data_per_vertex[key]._data[end_idx:],
+                tgm.data_per_vertex[key]._data[end_idx:],
                 trx2.data_per_vertex[key]._data,
             )
 
         end_idx = trx1.header["NB_STREAMLINES"]
-        for key in trx.data_per_streamline.keys():
+        for key in tgm.data_per_streamline.keys():
             assert_equal(
-                trx.data_per_streamline[key][:end_idx],
+                tgm.data_per_streamline[key][:end_idx],
                 trx1.data_per_streamline[key],
             )
             assert_equal(
-                trx.data_per_streamline[key][end_idx:],
+                tgm.data_per_streamline[key][end_idx:],
                 trx2.data_per_streamline[key],
             )
 
         # Validate
         out_concat_path = os.path.join(tmp_path, "concat.trx")
         out_valid_path = os.path.join(tmp_path, "valid.trx")
-        tmm.save(trx, out_concat_path)
+        tmm.save(tgm, out_concat_path)
         validate_tractogram(
             out_concat_path,
             None,
@@ -467,10 +467,10 @@ class TestWorkflowFunctions:
         trx_val = tmm.load(out_valid_path)
 
         # Right dtype and size
-        assert DeepDiff(trx.get_dtype_dict(), trx_val.get_dtype_dict()) == {}
+        assert DeepDiff(tgm.get_dtype_dict(), trx_val.get_dtype_dict()) == {}
         assert_equal(len(trx1.streamlines), len(trx_val.streamlines))
 
-        trx.close()
+        tgm.close()
         trx1.close()
         trx2.close()
         trx_val.close()
@@ -478,7 +478,7 @@ class TestWorkflowFunctions:
     @pytest.mark.skipif(not dipy_available, reason="Dipy is not installed.")
     def test_execution_manipulate_trx_datatype(self, tmp_path):
         expected_trx = os.path.join(get_home(), "trx_from_scratch", "expected.trx")
-        trx = tmm.load(expected_trx)
+        tgm = tmm.load(expected_trx)
 
         expected_dtype = {
             "positions": np.dtype("float16"),
@@ -501,12 +501,12 @@ class TestWorkflowFunctions:
 
         assert (
             DeepDiff(
-                trx.get_dtype_dict(),
+                tgm.get_dtype_dict(),
                 _normalize_dtype_dict(expected_dtype),
             )
             == {}
         )
-        trx.close()
+        tgm.close()
 
         generated_dtype = {
             "positions": np.dtype("float32"),
@@ -535,12 +535,12 @@ class TestWorkflowFunctions:
             ),
         ):
             manipulate_trx_datatype(expected_trx, out_gen_path, generated_dtype)
-        trx = tmm.load(out_gen_path)
+        tgm = tmm.load(out_gen_path)
         assert (
             DeepDiff(
-                trx.get_dtype_dict(),
+                tgm.get_dtype_dict(),
                 _normalize_dtype_dict(generated_dtype),
             )
             == {}
         )
-        trx.close()
+        tgm.close()

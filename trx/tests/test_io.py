@@ -159,7 +159,7 @@ def test_close_tmp_files(path):
     gs_dir = os.path.join(get_home(), "gold_standard")
     path = os.path.join(gs_dir, path)
 
-    trx = tmm.load(path)
+    tgm = tmm.load(path)
     process = psutil.Process(os.getpid())
     open_files = process.open_files()
 
@@ -180,7 +180,7 @@ def test_close_tmp_files(path):
             count += 1
 
     assert count == 6
-    trx.close()
+    tgm.close()
 
     open_files = process.open_files()
     count = 0
@@ -234,12 +234,12 @@ def test_change_tmp_dir(trx_tmpdir_env, expected_parent, monkeypatch):
     else:
         monkeypatch.setenv("TRX_TMPDIR", trx_tmpdir_env)
 
-    trx = tmm.load(path)
-    tmp_gs_dir = deepcopy(trx._uncompressed_folder_handle.name)
+    tgm = tmm.load(path)
+    tmp_gs_dir = deepcopy(tgm._uncompressed_folder_handle.name)
 
     assert os.path.dirname(tmp_gs_dir) == expected_parent()
 
-    trx.close()
+    tgm.close()
     assert not os.path.isdir(tmp_gs_dir)
 
 
@@ -248,11 +248,11 @@ def test_complete_dir_from_trx(path):
     gs_dir = os.path.join(get_home(), "gold_standard")
     path = os.path.join(gs_dir, path)
 
-    trx = tmm.load(path)
-    if trx._uncompressed_folder_handle is None:
+    tgm = tmm.load(path)
+    if tgm._uncompressed_folder_handle is None:
         dir_to_check = path
     else:
-        dir_to_check = trx._uncompressed_folder_handle.name
+        dir_to_check = tgm._uncompressed_folder_handle.name
 
     file_paths = []
     for dirpath, _, filenames in os.walk(dir_to_check):

@@ -124,8 +124,8 @@ def convert_dsi_studio(
     if out_ext != ".trx":
         save_tractogram(sft_flip, out_tractogram, bbox_valid_check=not keep_invalid)
     else:
-        trx = tmm.TrxFile.from_sft(sft_flip)
-        tmm.save(trx, out_tractogram)
+        tgm = tmm.TrxFile.from_sft(sft_flip)
+        tmm.save(tgm, out_tractogram)
 
 
 def convert_tractogram(  # noqa: C901
@@ -169,9 +169,9 @@ def convert_tractogram(  # noqa: C901
     if in_ext != ".trx":
         sft = load_sft_with_reference(in_tractogram, reference, bbox_check=False)
     else:
-        trx = tmm.load(in_tractogram)
-        sft = trx.to_sft()
-        trx.close()
+        tgm = tmm.load(in_tractogram)
+        sft = tgm.to_sft()
+        tgm.close()
 
     if out_ext != ".trx":
         if out_ext == ".vtk":
@@ -185,13 +185,13 @@ def convert_tractogram(  # noqa: C901
                 )
         save_tractogram(sft, out_tractogram, bbox_valid_check=False)
     else:
-        trx = tmm.TrxFile.from_sft(sft)
-        if trx.streamlines._data.dtype.name != pos_dtype:
-            trx.streamlines._data = trx.streamlines._data.astype(pos_dtype)
-        if trx.streamlines._offsets.dtype.name != offsets_dtype:
-            trx.streamlines._offsets = trx.streamlines._offsets.astype(offsets_dtype)
-        tmm.save(trx, out_tractogram)
-        trx.close()
+        tgm = tmm.TrxFile.from_sft(sft)
+        if tgm.streamlines._data.dtype.name != pos_dtype:
+            tgm.streamlines._data = tgm.streamlines._data.astype(pos_dtype)
+        if tgm.streamlines._offsets.dtype.name != offsets_dtype:
+            tgm.streamlines._offsets = tgm.streamlines._offsets.astype(offsets_dtype)
+        tmm.save(tgm, out_tractogram)
+        tgm.close()
 
 
 def tractogram_simple_compare(in_tractograms, reference):
@@ -697,9 +697,9 @@ def generate_trx_from_scratch(  # noqa: C901
             for arg in dpg:
                 _write_data_array(tmp_dir_name, "dpg", arg, is_dpg=True)
 
-        trx = tmm.load(tmp_dir_name)
-        tmm.save(trx, out_tractogram)
-        trx.close()
+        tgm = tmm.load(tmp_dir_name)
+        tmm.save(tgm, out_tractogram)
+        tgm.close()
 
 
 def manipulate_trx_datatype(in_filename, out_filename, dict_dtype):  # noqa: C901
@@ -719,7 +719,7 @@ def manipulate_trx_datatype(in_filename, out_filename, dict_dtype):  # noqa: C90
     None
         Writes the converted TRX to ``out_filename``.
     """
-    trx = tmm.load(in_filename)
+    tgm = tmm.load(in_filename)
 
     # For each key in dict_dtype, we create a new memmap with the new dtype
     # and we copy the data from the old memmap to the new one.
@@ -727,53 +727,53 @@ def manipulate_trx_datatype(in_filename, out_filename, dict_dtype):  # noqa: C90
         for key in dict_dtype:
             if key == "positions":
                 tmp_mm = _create_temp_memmap(
-                    tmp_dir_name, dict_dtype[key], trx.streamlines._data.shape
+                    tmp_dir_name, dict_dtype[key], tgm.streamlines._data.shape
                 )
-                tmp_mm[:] = trx.streamlines._data[:]
-                trx.streamlines._data = tmp_mm
+                tmp_mm[:] = tgm.streamlines._data[:]
+                tgm.streamlines._data = tmp_mm
             elif key == "offsets":
                 tmp_mm = _create_temp_memmap(
-                    tmp_dir_name, dict_dtype[key], trx.streamlines._offsets.shape
+                    tmp_dir_name, dict_dtype[key], tgm.streamlines._offsets.shape
                 )
-                tmp_mm[:] = trx.streamlines._offsets[:]
-                trx.streamlines._offsets = tmp_mm
+                tmp_mm[:] = tgm.streamlines._offsets[:]
+                tgm.streamlines._offsets = tmp_mm
             elif key == "dpv":
                 for key_dpv in dict_dtype[key]:
                     tmp_mm = _create_temp_memmap(
                         tmp_dir_name,
                         dict_dtype[key][key_dpv],
-                        trx.data_per_vertex[key_dpv]._data.shape,
+                        tgm.data_per_vertex[key_dpv]._data.shape,
                     )
-                    tmp_mm[:] = trx.data_per_vertex[key_dpv]._data[:]
-                    trx.data_per_vertex[key_dpv]._data = tmp_mm
+                    tmp_mm[:] = tgm.data_per_vertex[key_dpv]._data[:]
+                    tgm.data_per_vertex[key_dpv]._data = tmp_mm
             elif key == "dps":
                 for key_dps in dict_dtype[key]:
                     tmp_mm = _create_temp_memmap(
                         tmp_dir_name,
                         dict_dtype[key][key_dps],
-                        trx.data_per_streamline[key_dps].shape,
+                        tgm.data_per_streamline[key_dps].shape,
                     )
-                    tmp_mm[:] = trx.data_per_streamline[key_dps][:]
-                    trx.data_per_streamline[key_dps] = tmp_mm
+                    tmp_mm[:] = tgm.data_per_streamline[key_dps][:]
+                    tgm.data_per_streamline[key_dps] = tmp_mm
             elif key == "dpg":
                 for key_group in dict_dtype[key]:
                     for key_dpg in dict_dtype[key][key_group]:
                         tmp_mm = _create_temp_memmap(
                             tmp_dir_name,
                             dict_dtype[key][key_group][key_dpg],
-                            trx.data_per_group[key_group][key_dpg].shape,
+                            tgm.data_per_group[key_group][key_dpg].shape,
                         )
-                        tmp_mm[:] = trx.data_per_group[key_group][key_dpg][:]
-                        trx.data_per_group[key_group][key_dpg] = tmp_mm
+                        tmp_mm[:] = tgm.data_per_group[key_group][key_dpg][:]
+                        tgm.data_per_group[key_group][key_dpg] = tmp_mm
             elif key == "groups":
                 for key_group in dict_dtype[key]:
                     tmp_mm = _create_temp_memmap(
                         tmp_dir_name,
                         dict_dtype[key][key_group],
-                        trx.groups[key_group].shape,
+                        tgm.groups[key_group].shape,
                     )
-                    tmp_mm[:] = trx.groups[key_group][:]
-                    trx.groups[key_group] = tmp_mm
+                    tmp_mm[:] = tgm.groups[key_group][:]
+                    tgm.groups[key_group] = tmp_mm
 
-        tmm.save(trx, out_filename)
-        trx.close()
+        tmm.save(tgm, out_filename)
+        tgm.close()

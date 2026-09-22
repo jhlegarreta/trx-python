@@ -33,10 +33,10 @@ pip install .
 from trx.io import load, save
 
 # Load a tractogram (supports .trx, .trk, .tck, .vtk, .fib, .dpy)
-trx = load("tractogram.trx")
+tgm = load("tractogram.trx")
 
 # Save to a different format
-save(trx, "output.trk")
+save(tgm, "output.trk")
 ```
 
 ### Command-Line Interface
